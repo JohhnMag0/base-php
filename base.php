@@ -28,6 +28,7 @@
 class Base {
 
     const b32alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+    const b16alphabet = "0123456789ABCDEF";
 
     public static function b32encode($data){
         $result = '';
@@ -105,4 +106,82 @@ class Base {
 
         return $result;
     }
+    
+    public static function b16encode($data){
+        $result = '';
+        $string = str_split($data);
+
+        // Variables for bit values 
+        $remainder = 0;
+        $remainderSize = 0;
+
+        foreach ($string as $char) {
+            $ascii = ord($char);
+
+            // Move one byte and add a character value
+            $remainder = ($remainder << 8) | $ascii;
+
+            // Add a byte to Size
+            $remainderSize += 8;
+            
+            while ($remainderSize > 3) {
+                
+                // Remove the B16 code portion
+                $remainderSize -= 4;
+
+                // @value 15 is the number os chars in the alphabet
+                // Get the character bit mask
+                $code = $remainder & (15 << $remainderSize);
+                // Put the bits in the range of the b16 alphabet
+                $code >>= $remainderSize;
+                $result .= self::b16alphabet[$code];
+            }    
+        }
+
+        // Get the value of the bits that are left
+        if ($remainderSize > 0) {
+            $remainder <<= (4 - $remainderSize);
+            $code = $remainder & 15;
+            $result .= self::b16alphabet[$code];
+        }
+        
+        return $result;
+    }
+    
+    public static function b16decode($data){
+        $result = '';
+        $data = strtoupper($data);
+        $byte = 0;
+        $byteSize = 0;
+
+        $string = str_split($data);
+        foreach ($string as $char) {
+
+            // Get the value of the char within the alphabet
+            $validChar = stripos(self::b16alphabet, $char);
+            
+            // Verify if the data is valid
+            if ($validChar === false) {
+                exit('Invalid char: '.$char);
+            }
+
+            // Move 4 bits and adds the value of the char
+            $byte = ($byte << 4) | $validChar;
+
+            // Add the size of one B16 char 
+            $byteSize += 4;
+
+            if ($byteSize > 7) {
+                
+                // Remove one byte
+                $byteSize -= 8;
+
+                // Moves the bits to match the ASCII code
+                $result .= chr($byte >> $byteSize);
+            }
+        }
+
+        return $result;
+    }
+    
 }
